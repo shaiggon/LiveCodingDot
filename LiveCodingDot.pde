@@ -10,13 +10,47 @@ int[] midi_slider_numbers = new int[5];
 String[] midi_uniforms = new String[5];
 float[] note = new float[2];
 
+class NoteEnvelope {
+  double start;
+  float value;
+  float decay;
+  
+  NoteEnvelope(float dec) {
+    decay = dec;
+    value = 0.0;
+    start = 0.0;
+  }
+  
+  void run() {
+    if(value > 0.0 && start > 0.0) {
+      value = max((float)(start-millis()+decay)/decay, 0.0);
+      println(value);
+    }
+  }
+  
+  void noteOn() {
+    start = -1.0;
+    value = 1.0;
+  }
+  
+  void noteOff() {
+    start = millis();
+  }
+  
+  float getValue() {
+    return value;
+  }
+}
+
+NoteEnvelope envelope = new NoteEnvelope(500.0);
+
 void setup() {
   size(1280, 720, P2D);
   noStroke();
   
   // Show devices, initialize bus
   MidiBus.list();
-  bus = new MidiBus(this, 1, 1); // Change the device according to list
+  bus = new MidiBus(this, 5, 5); // Change the device according to list
   
   // Initialize uniform names
   for(int i = 0; i < 5; i++) {
@@ -42,6 +76,7 @@ void setup() {
 }
 
 void draw() {
+  envelope.run();
   // Set uniforms
   liveshader.set("time", millis() / 1000.0);
   // Midi sliders
@@ -49,7 +84,7 @@ void draw() {
     liveshader.set(midi_uniforms[i], midi_slider_values[i]);
   }
   // Note
-  liveshader.set("note", note[0], note[1]);
+  liveshader.set("note", note[0], note[1]*envelope.getValue());
   
   // draw shader
   shader(liveshader);
@@ -61,10 +96,12 @@ void draw() {
 //-------------------------------------------
 void noteOn(int channel, int pitch, int velocity) {
   //DEBUG PRINT
-  //printMidiInfo("noteOn", channel, pitch, velocity);
+  printMidiInfo("noteOn", channel, pitch, velocity);
   
   note[0] = (float)pitch/127.0;
   note[1] = (float)velocity/127.0;
+  
+  envelope.noteOn();
 }
 
 void noteOff(int channel, int pitch, int velocity) {
@@ -72,7 +109,9 @@ void noteOff(int channel, int pitch, int velocity) {
   //printMidiInfo("noteOff", channel, pitch, velocity);
   
   note[0] = (float)pitch/127.0;
-  note[1] = 0.0;
+  //note[1] = 0.0;
+  
+  envelope.noteOff();
 }
 
 void controllerChange(int channel, int number, int value) {

@@ -12,7 +12,7 @@ uniform vec2 note;
 void main(void) {
   vec2 p = -1.0 + 2.0 * gl_FragCoord.xy / resolution.xy;
   
-  float dist = 0.5 + 0.5*sin(time);
-  float beat = note.y;
-  gl_FragColor=vec4(p.x * beat, p.y * dist, midi0, 1.0);
+  float dist = 0.5 + 0.5*sin(time + p.x*20.0);
+  vec2 note_color = vec2(note.x, 1.0 - note.x)*note.y;
+  gl_FragColor=vec4(note_color*dist, midi0, 1.0);
 }
